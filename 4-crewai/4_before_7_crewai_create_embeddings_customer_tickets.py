@@ -1,24 +1,26 @@
 # Data taken from https://www.kaggle.com/datasets/tobiasbueck/multilingual-customer-support-tickets
 import pandas as pd
-import pickle
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_core.documents import Document
-from langchain_community.vectorstores import FAISS
+from langchain_chroma import Chroma
 from langchain_text_splitters import CharacterTextSplitter
+import os
+import shutil
 
 def create_and_save_embeddings():
     """
     Read customer_tickets.csv, create embeddings from 'body',
-    and save FAISS DB with answer + priority metadata
+    and save Chroma DB with answer + priority metadata
     """
     
     print("Reading customer_tickets.csv...")
     try:
-        df = pd.read_csv('customer_tickets.csv')
+        df = pd.read_csv('c://code//agenticai//4_crewai//customer_tickets.csv')
         print(f"Loaded {len(df)} tickets from CSV")
         
         # Clean column names
         df.columns = df.columns.str.strip().str.lower()
+        print(f"Columns found: {list(df.columns)}")
         
         required_cols = ['body', 'answer', 'priority']
         for col in required_cols:
@@ -26,25 +28,25 @@ def create_and_save_embeddings():
                 print("Available columns:", list(df.columns))
                 raise ValueError(f"Missing required column: {col}")
         
-        # Drop rows with missing bodies
+        # Drop rows with missing or empty 'body'
         df = df.dropna(subset=['body'])
         df = df[df['body'].str.strip() != '']
         print(f"Processing {len(df)} valid tickets...")
         
     except FileNotFoundError:
-        print("Error: customer_tickets.csv not found in current directory")
+        print("Error: customer_tickets.csv not found")
         return
     except Exception as e:
         print(f"Error reading CSV: {e}")
         return
     
-    # Step 2: Create documents (body as content, metadata = answer + priority)
+    # Create documents
     print("Creating documents...")
     documents = []
     for idx, row in df.iterrows():
         body = str(row['body']).strip()
         answer = str(row['answer']).strip() if pd.notna(row['answer']) else ""
-        priority = str(row['priority']).strip() if pd.notna(row['priority']) else "unknown"
+        priority = str(row['priority']).strip().lower() if pd.notna(row['priority']) else "unknown"
         
         doc = Document(
             page_content=body,
@@ -56,7 +58,9 @@ def create_and_save_embeddings():
         )
         documents.append(doc)
     
-    # Step 3: Split documents (for long bodies)
+    print(f"Created {len(documents)} documents")
+    
+    # Split documents
     print("Splitting documents...")
     splitter = CharacterTextSplitter(
         chunk_size=500,
@@ -64,77 +68,74 @@ def create_and_save_embeddings():
         separator=" "
     )
     docs = splitter.split_documents(documents)
-    print(f"Created {len(docs)} document chunks")
+    print(f"Split into {len(docs)} document chunks")
     
-    # Step 4: Initialize embeddings
+    # Initialize embeddings
     print("Initializing embedding model...")
     embeddings = HuggingFaceEmbeddings(
         model_name="sentence-transformers/all-MiniLM-L6-v2",
         model_kwargs={'device': 'cpu'}
     )
     
-    # Step 5: Create FAISS vector DB
+    # Clear old database
+    persist_dir = "c://code//agenticai//4_crewai//customer_support_chroma"
+    if os.path.exists(persist_dir):
+        print("Clearing previous Chroma database...")
+        shutil.rmtree(persist_dir)
+    
+    # Create Chroma vector DB
     print("Creating embeddings and vector database...")
-    vectordb = FAISS.from_documents(docs, embeddings)
-    print("Vector database created successfully!")
+    vectordb = Chroma.from_documents(
+        documents=docs,
+        embedding=embeddings,
+        persist_directory=persist_dir,
+        collection_name="customer_support"
+    )
     
-    # Step 6: Save everything
-    print("Saving embeddings to files...")
-    vectordb.save_local("customer_support_faiss")
-    df.to_pickle("customer_tickets.pkl")
+    print(f"Vector database created with {vectordb._collection.count()} vectors!")
+    print(f"Saved to: {persist_dir}")
     
-    embedding_info = {
-        "model_name": "sentence-transformers/all-MiniLM-L6-v2",
-        "total_documents": len(docs),
-        "total_tickets": len(df)
-    }
-    with open("embedding_info.pkl", "wb") as f:
-        pickle.dump(embedding_info, f)
-    
-    print("Embeddings saved successfully!")
-    print(f"Files created:")
-    print(f"   - customer_support_faiss/ (FAISS vector database)")
-    print(f"   - customer_tickets.pkl (original data)")
-    print(f"   - embedding_info.pkl (metadata)")
-
 def load_embeddings_example():
     """
     Example: load embeddings, run query, fetch best answers + priority
     """
-    print("\n" + "="*50)
-    print("EXAMPLE: How to load saved embeddings")
-    print("="*50)
+    print("\n" + "="*70)
+    print("TESTING: Loading saved embeddings")
+    print("="*70)
+    
+    persist_dir = "c://code//agenticai//4_crewai//customer_support_chroma"
     
     try:
         embeddings = HuggingFaceEmbeddings(
             model_name="sentence-transformers/all-MiniLM-L6-v2"
         )
         
-        vectordb = FAISS.load_local(
-            "customer_support_faiss", 
-            embeddings,
-            allow_dangerous_deserialization=True
+        vectordb = Chroma(
+            persist_directory=persist_dir,
+            embedding_function=embeddings,
+            collection_name="customer_support"
         )
         
-        df = pd.read_pickle("customer_tickets.pkl")
-        with open("embedding_info.pkl", "rb") as f:
-            info = pickle.load(f)
+        print(f"Loaded database with {vectordb._collection.count()} vectors\n")
         
-        print("Successfully loaded embeddings!")
-        print(f"Loaded {info['total_tickets']} tickets with {info['total_documents']} document chunks")
+        # Test queries
+        test_queries = [
+            "I forgot my password, how do I reset it?",
+            "investment analysis data analytics",
+            "security of medical data"
+        ]
         
-        # Test search
-        test_query = "I forgot my password, how do I reset it?"
-        results = vectordb.similarity_search(test_query, k=3)
-        
-        print(f"\nTest query: {test_query}")
-        for i, doc in enumerate(results, 1):
-            print(f"\n{i}. Body: {doc.page_content}")
-            print(f"   → Suggested Answer: {doc.metadata.get('answer')}")
-            print(f"   → Priority: {doc.metadata.get('priority')}")
+        for query in test_queries:
+            print(f"\nQuery: '{query}'")
+            print("-" * 70)
+            results = vectordb.similarity_search(query, k=2)
             
-    except FileNotFoundError:
-        print("Embedding files not found. Run create_and_save_embeddings() first.")
+            for i, doc in enumerate(results, 1):
+                print(f"\nMatch {i}:")
+                print(f"  Body: {doc.page_content[:100]}...")
+                print(f"  Answer: {doc.metadata.get('answer', 'N/A')[:100]}...")
+                print(f"  Priority: {doc.metadata.get('priority', 'unknown')}")
+            
     except Exception as e:
         print(f"Error loading embeddings: {e}")
 
