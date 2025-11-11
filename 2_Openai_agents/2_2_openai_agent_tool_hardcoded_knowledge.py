@@ -6,10 +6,7 @@ from agents import Agent, Runner, function_tool
 load_dotenv(override=True)
 
 # Enable OpenAI tracing (shows in https://platform.openai.com/logs?api=traces)
-client = OpenAI(
-    # The tracing flag enables automatic event recording
-    tracing={"enabled": True, "sample_rate": 1.0} # Sample 100% of traces
-)
+client = OpenAI()
 
 knowledge_base = {
     "shipping_time": "Our standard shipping time is 3-5 business days.",
