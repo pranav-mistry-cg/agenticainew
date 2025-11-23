@@ -27,7 +27,11 @@ state = {}
 # --- Step 4: First run ---
 print("\n--- First Run ---")
 if state.get("first_run", True):
+<<<<<<< HEAD
     greetings = ["Hi there", "Bye, see you later", "Greetings!", "Do not come", "Gone already"]
+=======
+    greetings = ["Hi there", "Bye, see you later", "Greetings!", "Do not come", "Gone already", "Umbrella"]
+>>>>>>> 843034120d515e626bea00ea96a943cc78c4d601
     save_memory(greetings)
     state["msg"] = "First run: Saved greetings to Chroma vector memory!"
     state["first_run"] = False
@@ -37,7 +41,11 @@ if state.get("first_run", True):
 # --- Step 5: Second run ---
 print("\n--- Second Run ---")
 query = "Hello"
+<<<<<<< HEAD
 results = recall_memory_with_scores(query, 5)
+=======
+results = recall_memory_with_scores(query, 6)
+>>>>>>> 843034120d515e626bea00ea96a943cc78c4d601
 
 if results:
     state["msg"] = f"Second run: Compared '{query}' with stored greetings.\nMost similar ones:"

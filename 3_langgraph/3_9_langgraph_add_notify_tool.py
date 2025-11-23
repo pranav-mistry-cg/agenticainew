@@ -65,6 +65,10 @@ def tool_ntfy(message: str) -> str:
     Sends a notification via ntfy.sh.
     """
     ntfy_topic = os.getenv("NTFY_TOPIC")
+<<<<<<< HEAD
+=======
+    # NTFY_TOPIC="atulkahate_urgent_tickets"
+>>>>>>> 843034120d515e626bea00ea96a943cc78c4d601
     ntfy_url = f"https://ntfy.sh/{ntfy_topic}"
     try:
         response = requests.post(ntfy_url, data=message, timeout=5)

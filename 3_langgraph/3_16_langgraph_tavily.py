@@ -16,7 +16,10 @@ class SearchState(TypedDict):
     results: str
 
 def internet_search(state: SearchState) -> SearchState:
+<<<<<<< HEAD
     """Node 1: Perform Tavily search"""
+=======
+>>>>>>> 843034120d515e626bea00ea96a943cc78c4d601
     query = state["query"]
     response = tavily_client.search(
         query=query,
@@ -25,6 +28,7 @@ def internet_search(state: SearchState) -> SearchState:
         include_raw_content=False,
     )
 
+<<<<<<< HEAD
     # Format results
     # Check if the search returned any results
     if response["results"]:
@@ -45,6 +49,19 @@ def internet_search(state: SearchState) -> SearchState:
         # show a friendly message instead of leaving it empty
         state["results"] = "No results found."
 
+=======
+    if response["results"]:
+        texts = []
+        for r in response["results"]:
+            texts.append(r["content"][:200])
+        state["results"] = "\n\n".join(texts)
+    else:
+        state["results"] = "No results found."
+
+    return state 
+
+
+>>>>>>> 843034120d515e626bea00ea96a943cc78c4d601
 def summarize_results(state: SearchState) -> SearchState:
     """Node 2: Summarize results simply (no LLMs, just truncation for demo)"""
     # Get the text stored in 'results' from the current state dictionary.

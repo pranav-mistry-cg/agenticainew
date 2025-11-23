@@ -65,9 +65,16 @@ def review_code(state: AgentState) -> AgentState:
 
     Provide:
     - Vulnerable code snippet or line
+<<<<<<< HEAD
     - Type of vulnerability (e.g., SQL Injection, XSS, Insecure Deserialization)
     - Severity (High/Medium/Low)
     - Why it’s a problem
+=======
+    - Java/JVM/JRE-specific code problem
+    - Type of vulnerability (e.g., SQL Injection, XSS, Insecure Deserialization)
+    - Severity (High/Medium/Low)
+    - Why it is a problem
+>>>>>>> 843034120d515e626bea00ea96a943cc78c4d601
     - How to fix it briefly
 
     Code to review:

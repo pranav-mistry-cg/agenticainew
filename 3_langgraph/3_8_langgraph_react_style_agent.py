@@ -1,7 +1,11 @@
+<<<<<<< HEAD
 # ReAct-style agent using Chroma instead of FAISS
 # -----------------------------------------------------
 # Key change: Vector database now uses Chroma.
 # -----------------------------------------------------
+=======
+# ReAct-style agent using Chroma
+>>>>>>> 843034120d515e626bea00ea96a943cc78c4d601
 
 import os
 import re

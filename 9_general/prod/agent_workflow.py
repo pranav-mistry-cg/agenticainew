@@ -27,7 +27,6 @@ news_key = os.getenv("NEWS_API_KEY")
 # Agent Functions
 # --------------------------
 def fetch_news(state: AgentState) -> AgentState:
-    print("Agent 1: Fetching news...")
     url = f"https://newsapi.org/v2/everything?q={state['topic']}&apiKey={news_key}&pageSize=5"
     try:
         r = requests.get(url)
@@ -38,28 +37,23 @@ def fetch_news(state: AgentState) -> AgentState:
     return {"headlines": headlines}
 
 def summarize_news(state: AgentState) -> AgentState:
-    print("Agent 2: Summarizing news...")
     prompt = f"Summarize these headlines about {state['topic']}:\n{state['headlines']}"
     resp = llm.invoke([HumanMessage(content=prompt)])
     return {"summary": resp.content}
 
 def analyze_sentiment(state: AgentState) -> AgentState:
-    print("Agent 3: Analyzing sentiment...")
     prompt = f"Is this summary overall positive or negative?\n\n{state['summary']}"
     resp = llm.invoke([HumanMessage(content=prompt)])
     sentiment = resp.content.strip().lower()
     label = "positive" if "positive" in sentiment else "negative"
-    print(f"Sentiment: {sentiment} ({label})")
     return {"sentiment": sentiment, "sentiment_label": label}
 
 def investor_summary(state: AgentState) -> AgentState:
-    print("Agent 4A: Creating investor summary...")
     prompt = f"Write an investor-focused insight based on:\n{state['summary']}"
     resp = llm.invoke([HumanMessage(content=prompt)])
     return {"final_report": resp.content}
 
 def public_summary(state: AgentState) -> AgentState:
-    print("Agent 4B: Creating public summary...")
     prompt = f"Write a short public news digest based on:\n{state['summary']}"
     resp = llm.invoke([HumanMessage(content=prompt)])
     return {"final_report": resp.content}
@@ -68,7 +62,6 @@ def public_summary(state: AgentState) -> AgentState:
 # Build Graph
 # --------------------------
 workflow = StateGraph(AgentState)
-
 workflow.add_node("fetch_news", fetch_news)
 workflow.add_node("summarize_news", summarize_news)
 workflow.add_node("analyze_sentiment", analyze_sentiment)
@@ -78,24 +71,21 @@ workflow.add_node("public_summary", public_summary)
 workflow.set_entry_point("fetch_news")
 workflow.add_edge("fetch_news", "summarize_news")
 workflow.add_edge("summarize_news", "analyze_sentiment")
-
 workflow.add_conditional_edges(
     "analyze_sentiment",
     lambda state: "investor_summary" if state["sentiment_label"] == "positive" else "public_summary"
 )
-
 workflow.add_edge("investor_summary", END)
 workflow.add_edge("public_summary", END)
 
 app = workflow.compile()
 
 # --------------------------
-<<<<<<< HEAD
-# Run
+# Streaming function
 # --------------------------
-if __name__ == "__main__":
+def run_agent_for_topic(topic: str):
     initial = {
-        "topic": "US stock market",
+        "topic": topic,
         "headlines": "",
         "summary": "",
         "sentiment": "",
@@ -103,33 +93,26 @@ if __name__ == "__main__":
         "sentiment_label": ""
     }
 
-    result = app.invoke(initial)
-    print("\n" + "=" * 60)
-    print(result["final_report"])
-    print("=" * 60)
-=======
-# Run in a loop for multiple topics
-# --------------------------
-if __name__ == "__main__":
-    print("Enter a topic to fetch news and summaries. Type 'exit' to quit.")
-    while True:
-        topic = input("\nEnter topic: ").strip()
-        if topic.lower() == "exit":
-            print("Exiting...")
-            break
+    # 1. Fetch news
+    result = app.invoke({**initial})
+    headlines = result["headlines"]
+    yield f"Headlines:\n{headlines}\n\n"
 
-        initial = {
-            "topic": topic,
-            "headlines": "",
-            "summary": "",
-            "sentiment": "",
-            "final_report": "",
-            "sentiment_label": ""
-        }
+    # 2. Summarize
+    summary_result = summarize_news({**initial, "headlines": headlines, "topic": topic})
+    summary = summary_result["summary"]
+    yield f"Summary:\n{summary}\n\n"
 
-        result = app.invoke(initial)
-        print("\n" + "=" * 60)
-        print(f"Topic: {topic}")
-        print(result["final_report"])
-        print("=" * 60)
->>>>>>> 843034120d515e626bea00ea96a943cc78c4d601
+    # 3. Sentiment
+    sentiment_result = analyze_sentiment({**initial, "summary": summary})
+    sentiment = sentiment_result["sentiment"]
+    label = sentiment_result["sentiment_label"]
+    yield f"Sentiment: {sentiment} ({label})\n\n"
+
+    # 4. Final report
+    if label == "positive":
+        final = investor_summary({**initial, "summary": summary})["final_report"]
+        yield f"Investor Summary:\n{final}\n"
+    else:
+        final = public_summary({**initial, "summary": summary})["final_report"]
+        yield f"Public Summary:\n{final}\n"

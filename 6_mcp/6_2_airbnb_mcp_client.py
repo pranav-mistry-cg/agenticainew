@@ -19,7 +19,11 @@ async def main():
             
             # Get listings
             result = await session.call_tool("airbnb_search", {
+<<<<<<< HEAD
                 "location": "Pune",
+=======
+                "location": "Paris, France",
+>>>>>>> 843034120d515e626bea00ea96a943cc78c4d601
                 "checkin": checkin,
                 "checkout": checkout,
                 "adults": 2,

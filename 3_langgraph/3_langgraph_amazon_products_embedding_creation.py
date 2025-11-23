@@ -1,3 +1,7 @@
+<<<<<<< HEAD
+=======
+# Dataset: https://www.kaggle.com/code/jayrdixit/amazon-product-dataset/input?select=amazon_products.csv
+>>>>>>> 843034120d515e626bea00ea96a943cc78c4d601
 import pandas as pd
 import pickle
 from langchain_huggingface import HuggingFaceEmbeddings

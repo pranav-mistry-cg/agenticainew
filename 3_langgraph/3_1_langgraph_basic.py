@@ -44,6 +44,10 @@ if __name__ == "__main__":
     # --- Draw and save the graph image ---
     print("Generating graph image...")
     graph = app.get_graph()
+<<<<<<< HEAD
     graph_path = "c://code//agenticai//greeting_graph.png"
+=======
+    graph_path = "c://code//agenticai//3_langgraph//greeting_graph.png"
+>>>>>>> 843034120d515e626bea00ea96a943cc78c4d601
     graph.draw_mermaid_png(output_file_path=graph_path)
     print(f"Graph image saved at: {graph_path}")
