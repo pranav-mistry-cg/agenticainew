@@ -26,3 +26,4 @@ tavily-python
 autogen==0.9.9
 autogen-core==0.7.4
 asyncio
+feedparser
